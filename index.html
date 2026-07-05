@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e1e2e">
 <title>Snake</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -19,7 +23,13 @@
         <button id="restart-btn">Play Again</button>
       </div>
     </div>
-    <p class="hint">Use arrow keys to move. Press Space to pause.</p>
+    <p class="hint">Swipe or use arrow keys to move. Tap to pause.</p>
+    <div class="dpad" aria-label="Direction controls">
+      <button class="dpad-btn dpad-up" data-dir="up" aria-label="Up">&#9650;</button>
+      <button class="dpad-btn dpad-left" data-dir="left" aria-label="Left">&#9664;</button>
+      <button class="dpad-btn dpad-down" data-dir="down" aria-label="Down">&#9660;</button>
+      <button class="dpad-btn dpad-right" data-dir="right" aria-label="Right">&#9654;</button>
+    </div>
   </div>
   <script src="game.js"></script>
 </body>

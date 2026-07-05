@@ -5,6 +5,7 @@ const boardWrap = document.querySelector('.board-wrap');
 const titleEl = document.querySelector('h1');
 const hudEl = document.querySelector('.hud');
 const hintEl = document.querySelector('.hint');
+const dpadEl = document.querySelector('.dpad');
 const scoreEl = document.getElementById('score');
 const highScoreEl = document.getElementById('high-score');
 const gameOverEl = document.getElementById('game-over');
@@ -27,7 +28,8 @@ function resizeCanvas() {
   const chromeHeight =
     titleEl.getBoundingClientRect().height +
     hudEl.getBoundingClientRect().height +
-    hintEl.getBoundingClientRect().height;
+    hintEl.getBoundingClientRect().height +
+    dpadEl.getBoundingClientRect().height; // 0 when hidden (desktop, pointer:fine)
   const bodyStyle = getComputedStyle(document.body);
   const bodyPadding = parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
   const verticalGaps = 48; // margins between title/HUD/board/hint + subpixel safety margin
@@ -154,12 +156,27 @@ function gameLoop(timestamp) {
   }
 }
 
-const KEY_DIRECTIONS = {
-  ArrowUp: { x: 0, y: -1 },
-  ArrowDown: { x: 0, y: 1 },
-  ArrowLeft: { x: -1, y: 0 },
-  ArrowRight: { x: 1, y: 0 },
+const DIRECTIONS = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
 };
+
+const KEY_DIRECTIONS = {
+  ArrowUp: DIRECTIONS.up,
+  ArrowDown: DIRECTIONS.down,
+  ArrowLeft: DIRECTIONS.left,
+  ArrowRight: DIRECTIONS.right,
+};
+
+function setDirection(newDir) {
+  // Prevent reversing directly into itself
+  const isOpposite = newDir.x === -direction.x && newDir.y === -direction.y;
+  if (!isOpposite || snake.length === 1) {
+    nextDirection = newDir;
+  }
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.key === ' ') {
@@ -171,13 +188,46 @@ document.addEventListener('keydown', (e) => {
   const newDir = KEY_DIRECTIONS[e.key];
   if (!newDir) return;
   e.preventDefault();
-
-  // Prevent reversing directly into itself
-  const isOpposite = newDir.x === -direction.x && newDir.y === -direction.y;
-  if (!isOpposite || snake.length === 1) {
-    nextDirection = newDir;
-  }
+  setDirection(newDir);
 });
+
+document.querySelectorAll('.dpad-btn').forEach((btn) => {
+  const dir = DIRECTIONS[btn.dataset.dir];
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    setDirection(dir);
+  });
+});
+
+// Swipe-to-steer / tap-to-pause on the board itself
+const SWIPE_THRESHOLD = 24; // px
+let touchStartX = 0;
+let touchStartY = 0;
+
+boardWrap.addEventListener('touchstart', (e) => {
+  const t = e.changedTouches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+}, { passive: true });
+
+boardWrap.addEventListener('touchend', (e) => {
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (Math.max(absDx, absDy) < SWIPE_THRESHOLD) {
+    if (!gameOver) paused = !paused;
+    return;
+  }
+
+  if (absDx > absDy) {
+    setDirection(dx > 0 ? DIRECTIONS.right : DIRECTIONS.left);
+  } else {
+    setDirection(dy > 0 ? DIRECTIONS.down : DIRECTIONS.up);
+  }
+}, { passive: true });
 
 restartBtn.addEventListener('click', () => {
   resetGame();
