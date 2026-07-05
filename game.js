@@ -17,7 +17,45 @@ const MIN_BOARD_SIZE = 150;
 
 let GRID_SIZE; // pixels per tile, recomputed on resize
 let canvasSize; // logical (CSS) pixel size of the square canvas
+let bgGradient = null; // cached background gradient, rebuilt on resize
 let snake, direction, nextDirection, food, score, highScore, paused, gameOver, lastMoveTime;
+
+const HEAD_RGB = [76, 175, 80]; // #4caf50
+const TAIL_RGB = [139, 195, 74]; // #8bc34a
+
+function lerpColor(a, b, t) {
+  const r = Math.round(a[0] + (b[0] - a[0]) * t);
+  const g = Math.round(a[1] + (b[1] - a[1]) * t);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+
+function fillRoundedRect(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function rebuildBackground() {
+  bgGradient = ctx.createRadialGradient(
+    canvasSize / 2, canvasSize / 2, 0,
+    canvasSize / 2, canvasSize / 2, canvasSize * 0.75
+  );
+  bgGradient.addColorStop(0, '#181830');
+  bgGradient.addColorStop(1, '#0d0d16');
+}
 
 function resizeCanvas() {
   const containerWidth = gameContainer.clientWidth;
@@ -45,6 +83,7 @@ function resizeCanvas() {
   canvas.width = Math.round(size * dpr);
   canvas.height = Math.round(size * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  rebuildBackground();
   if (snake) draw();
 }
 
@@ -82,6 +121,12 @@ function resetGame() {
   lastMoveTime = 0;
 }
 
+function triggerScorePop() {
+  scoreEl.classList.remove('score-pop');
+  void scoreEl.offsetWidth; // force reflow so re-adding the class restarts the animation
+  scoreEl.classList.add('score-pop');
+}
+
 function update() {
   direction = nextDirection;
   if (direction.x === 0 && direction.y === 0) return;
@@ -104,6 +149,7 @@ function update() {
   if (head.x === food.x && head.y === food.y) {
     score += 10;
     scoreEl.textContent = score;
+    triggerScorePop();
     food = randomFoodPosition();
   } else {
     snake.pop();
@@ -120,18 +166,58 @@ function endGame() {
   gameOverEl.classList.remove('hidden');
 }
 
-function draw() {
-  ctx.fillStyle = '#12121e';
+function draw(timestamp = performance.now()) {
+  ctx.fillStyle = bgGradient || '#12121e';
   ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-  const gap = Math.max(1, GRID_SIZE * 0.05);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < TILE_COUNT; i++) {
+    const p = Math.round(i * GRID_SIZE) + 0.5; // +0.5 for crisp 1px lines
+    ctx.beginPath();
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, canvasSize);
+    ctx.moveTo(0, p);
+    ctx.lineTo(canvasSize, p);
+    ctx.stroke();
+  }
 
+  const gap = Math.max(1, GRID_SIZE * 0.05);
+  const radius = GRID_SIZE * 0.25;
+
+  // Food: rounded, glowing, gently pulsing/rotating (purely time-driven, independent of the move tick)
+  const pulse = 1 + 0.12 * Math.sin(timestamp / 220);
+  const angle = (timestamp / 900) % (Math.PI / 2);
+  const fx = food.x * GRID_SIZE + GRID_SIZE / 2;
+  const fy = food.y * GRID_SIZE + GRID_SIZE / 2;
+  const fw = (GRID_SIZE - gap) * pulse;
+
+  ctx.save();
+  ctx.translate(fx, fy);
+  ctx.rotate(angle);
+  ctx.shadowColor = 'rgba(255,85,85,0.8)';
+  ctx.shadowBlur = GRID_SIZE * 0.6;
   ctx.fillStyle = '#ff5555';
-  ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE - gap, GRID_SIZE - gap);
+  fillRoundedRect(-fw / 2, -fw / 2, fw, fw, fw * 0.25);
+  ctx.restore();
 
   snake.forEach((seg, i) => {
-    ctx.fillStyle = i === 0 ? '#4caf50' : '#8bc34a';
-    ctx.fillRect(seg.x * GRID_SIZE, seg.y * GRID_SIZE, GRID_SIZE - gap, GRID_SIZE - gap);
+    const t = snake.length > 1 ? i / (snake.length - 1) : 0;
+    const x = seg.x * GRID_SIZE;
+    const y = seg.y * GRID_SIZE;
+    const w = GRID_SIZE - gap;
+
+    if (i === 0) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(76,175,80,0.6)';
+      ctx.shadowBlur = GRID_SIZE * 0.5;
+      ctx.fillStyle = lerpColor(HEAD_RGB, TAIL_RGB, t);
+      fillRoundedRect(x, y, w, w, radius);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = lerpColor(HEAD_RGB, TAIL_RGB, t);
+      fillRoundedRect(x, y, w, w, radius);
+    }
   });
 
   if (paused && !gameOver) {
@@ -151,7 +237,7 @@ function gameLoop(timestamp) {
       lastMoveTime = timestamp;
       update();
     }
-    draw();
+    draw(timestamp);
     requestAnimationFrame(gameLoop);
   }
 }
@@ -233,6 +319,8 @@ restartBtn.addEventListener('click', () => {
   resetGame();
   requestAnimationFrame(gameLoop);
 });
+
+scoreEl.addEventListener('animationend', () => scoreEl.classList.remove('score-pop'));
 
 let resizeTimeout;
 window.addEventListener('resize', () => {
