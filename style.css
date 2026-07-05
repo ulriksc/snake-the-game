@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e2e;
+  color: #e0e0e0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  padding: 16px;
+}
+
+.game-container {
+  text-align: center;
+  position: relative;
+  width: min(92vw, 560px);
+}
+
+h1 {
+  margin: 0 0 10px;
+  letter-spacing: 2px;
+  font-size: clamp(1.4rem, 6vw, 2.2rem);
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0 auto 10px;
+  font-size: clamp(0.9rem, 3vw, 1.1rem);
+}
+
+.board-wrap {
+  position: relative;
+  margin: 0 auto;
+  /* width/height are set in px by game.js so the board fits both the
+     available width and the available viewport height (e.g. short
+     landscape screens where the header/HUD/hint text eat into vh) */
+}
+
+canvas {
+  background: #12121e;
+  border: 3px solid #4caf50;
+  border-radius: 6px;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hint {
+  opacity: 0.6;
+  font-size: clamp(0.75rem, 2.5vw, 0.85rem);
+  margin-top: 8px;
+}
+
+#game-over {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 6px;
+}
+
+#game-over.hidden {
+  display: none;
+}
+
+#game-over p {
+  font-size: 1.8rem;
+  margin: 0 0 16px;
+  color: #ff5555;
+}
+
+#restart-btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #4caf50;
+  color: white;
+  cursor: pointer;
+}
+
+#restart-btn:hover {
+  background: #43a047;
+}

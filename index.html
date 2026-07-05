@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snake</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <h1>Snake</h1>
+    <div class="hud">
+      <span>Score: <span id="score">0</span></span>
+      <span>Best: <span id="high-score">0</span></span>
+    </div>
+    <div class="board-wrap">
+      <canvas id="board"></canvas>
+      <div id="game-over" class="hidden">
+        <p>Game Over</p>
+        <button id="restart-btn">Play Again</button>
+      </div>
+    </div>
+    <p class="hint">Use arrow keys to move. Press Space to pause.</p>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
